@@ -19,7 +19,7 @@
  *     { "mData": "customer.location.address" }
  *
  * Felix-Antoine Paradis is the author of the original implementation this is
- * built off of, see: https://gist.github.com/1638094 
+ * built off of, see: https://gist.github.com/1638094
  */
 
 namespace LanKit\DatatablesBundle\Datatables;
@@ -314,10 +314,10 @@ class Datatable
                     $metadata->getAssociationTargetClass($entityName)
                 );
                 $joinName .= '_' . $this->getJoinName(
-                    $metadata,
-                    Container::camelize($metadata->getTableName()),
-                    $entityName
-                );
+                        $metadata,
+                        Container::camelize($metadata->getTableName()),
+                        $entityName
+                    );
                 // The join required to get to the entity in question
                 if (!isset($this->assignedJoins[$joinName])) {
                     $this->assignedJoins[$joinName]['joinOn'] = $joinOn;
@@ -380,7 +380,7 @@ class Datatable
 
         // If it is self-referencing then we must avoid collisions
         if ($metadata->getName() == $this->metadata->getName()) {
-            $joinName .= "_$entityName";   
+            $joinName .= "_$entityName";
         }
 
         return $joinName;
@@ -470,7 +470,7 @@ class Datatable
     /**
      * Configure the WHERE clause for the Doctrine QueryBuilder if any searches are specified
      *
-     * @param QueryBuilder The Doctrine QueryBuilder object
+     * @param QueryBuilder $qb
      */
     public function setWhere(QueryBuilder $qb)
     {
@@ -480,13 +480,24 @@ class Datatable
             for ($i=0 ; $i < count($this->parameters); $i++) {
                 if (isset($this->request['bSearchable_'.$i]) && $this->request['bSearchable_'.$i] == "true") {
                     $qbParam = "sSearch_global_{$this->associations[$i]['entityName']}_{$this->associations[$i]['fieldName']}";
-                    $orExpr->add($qb->expr()->like(
-                        $this->associations[$i]['fullName'],
-                        ":$qbParam"
-                    ));
-                    $qb->setParameter($qbParam, "%" . $this->request['sSearch'] . "%");
+                    if (isset($this->request['bCaseInsensitive']) && $this->request['bCaseInsensitive'] == "true") {
+                        $orExpr->add($qb->expr()->like(
+                            $qb->expr()->lower( $this->associations[$i]['fullName']),
+                            ":$qbParam"
+                        ));
+
+                        $qb->setParameter($qbParam, "%" . strtolower($this->request['sSearch']) . "%");
+                    } else {
+                        $orExpr->add($qb->expr()->like(
+                            $this->associations[$i]['fullName'],
+                            ":$qbParam"
+                        ));
+
+                        $qb->setParameter($qbParam, "%" . $this->request['sSearch'] . "%");
+                    }
                 }
             }
+
             $qb->where($orExpr);
         }
 
@@ -576,7 +587,7 @@ class Datatable
      * Method to execute after constructing this object. Configures the object before
      * executing getSearchResults()
      */
-    public function makeSearch() 
+    public function makeSearch()
     {
         $this->setSelect($this->qb);
         $this->setAssociations($this->qb);
@@ -746,7 +757,7 @@ class Datatable
 
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
-    
+
     /**
      * @return int Total query results after searches/filtering
      */
